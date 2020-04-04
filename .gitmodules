@@ -1,0 +1,4 @@
+[submodule "kanjivg"]
+	path = kanjivg
+	url = https://github.com/ichisadashioko/kanjivg
+	branch = master
