@@ -105,6 +105,10 @@ def raise_unexpected_char(d, pos):
     raise Exception(f'Unexpected {repr(d[pos])} at {pos} in {repr(d)}!')
 
 
+def raise_unexpected_end_of_data(d, pos):
+    raise Exception(f'Unexpected end of data at {pos} in {repr(d)}!')
+
+
 def skip_seps(d: str, pos: int):
     d_length = len(d)
 
@@ -138,6 +142,9 @@ def skip_numbers(d: str, pos: int):
 def parse_number(d: str, pos: int):
     d_length = len(d)
     pos = skip_seps(d, pos)
+
+    if not pos < d_length:
+        raise_unexpected_end_of_data(d, pos)
 
     if not d[pos] in numberic_chars:
         raise_unexpected_char(d, pos)
@@ -175,7 +182,7 @@ def parse_cooridate(d: str, pos: int):
 
     pos = skip_seps(d, pos)
     if not pos < d_length:
-        raise Exception(f'Unexpected end of data at {pos} in {repr(d)}!')
+        raise_unexpected_end_of_data(d, pos)
 
     pos = skip_seps(d, pos)
 
@@ -211,7 +218,7 @@ def parse_command(c: str, d: str, pos: int):
         return pos, PathCommand(c, (x2, y2, x, y))
 
     else:
-        raise Exception(f'Unsupported command {c} at {pos}!')
+        raise Exception(f'Unsupported command {c} at {pos} in {repr(d)}!')
 
 
 def parse_d_property(d: str):
@@ -223,32 +230,25 @@ def parse_d_property(d: str):
     d_length = len(d)
     pos = skip_seps(d, pos)
 
-    c = d[pos]
-    pos += 1
+    last_command = None
 
-    if not c == moveto_absolute:
-        raise Exception(f'Path data {repr(d)} does not start with command M!')
-
-    pos, (cpx, cpy) = parse_cooridate(d, pos)
-    command_list.append(PathCommand(moveto_absolute, (cpx, cpy)))
-
-    last_command = moveto_absolute
+    pos = skip_seps(d, pos)
 
     while pos < d_length:
-        pos = skip_seps(d, pos)
-
         c = d[pos]
         pos += 1
+
         if c in commands:
             pos, path_command = parse_command(c, d, pos)
             command_list.append(path_command)
             last_command = c
-        elif c in numberic_chars and last_command is not None:
-            pos, path_command = parse_command(last_command, d, pos)
+        elif (c in numberic_chars) and (last_command is not None):
+            pos, path_command = parse_command(last_command, d, pos - 1)
             command_list.append(path_command)
-            last_command = c
         else:
             raise_unexpected_char(d, pos)
+
+        pos = skip_seps(d, pos)
 
     return command_list
 
